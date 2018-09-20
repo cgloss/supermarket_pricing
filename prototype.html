@@ -5,19 +5,6 @@ test condition same as mod id
 test dupe conditions
 
 <script type="text/javascript">
-let items = [
-	{_id:1001,name:'eggs',price:1.99},
-	{_id:1002,name:'milk',price:2.99},
-	{_id:1003,name:'bread',price:3.99},
-	{_id:1004,name:'toothbrush',price:6.99},
-	{_id:1005,name:'soda',price:5.99},
-	{_id:1006,name:'beer',price:9.99},
-	{_id:1007,name:'apples',price:1.00},
-	{_id:1008,name:'pears',price:2.00},
-	{_id:1009,name:'blueberries',price:3.50},
-	{_id:1010,name:'strawberries',price:4.50},
-	{_id:1011,name:'yogurt',price:1.00},
-];
 
 // making assumption that in the event of a combo purchase, the items are not sharable in cases of duplicate partials
 // that means this needs corrected
@@ -34,17 +21,44 @@ let items = [
 
 // assuming they may want the ability to create overlaping promotions, to allow this means alternating the item id with conditions
 
-let cart = [1001,1002,1003,1004,1002,1006,1001];
-// let cart = [1006];
+// let cart = [1001,1002,1003,1004,1002,1006,1001];
+let cart = [1004,1004,1004];
+
+let items = [
+	{_id:1001,name:'eggs',price:1.99},
+	{_id:1002,name:'milk',price:2.99},
+	{_id:1003,name:'bread',price:3.99},
+	{_id:1004,name:'toothbrush',price:1.99},
+	{_id:1005,name:'soda',price:5.99},
+	{_id:1006,name:'beer',price:9.99},
+	{_id:1007,name:'apples',price:1.00},
+	{_id:1008,name:'pears',price:2.00},
+	{_id:1009,name:'blueberries',price:3.50},
+	{_id:1010,name:'strawberries',price:4.50},
+	{_id:1011,name:'yogurt',price:1.00},
+];
 
 // {item:number,condition:arr<string>,operation:string,apply:number}
 let modifiers = [
-	{item:1001,condition:[1003],operation:'-',apply:1.00}, // these are allowing for 4 times use of 1002 when it should only allow 2
-	{item:1006,condition:[],operation:'*',apply:.0925},
-	{item:1002,condition:[1001],operation:'-',apply:2.00}, // see above
-	{item:1001,condition:[1003,1002],operation:'-',apply:3.00},
+	// {_id:1,items:[1003],price:-1.00}, // these are allowing for 4 times use of 1002 when it should only allow 2
+	// {_id:2,items:[],operation:'*',apply:.0925},
+	// {_id:3,items:[1001],price:-2.00}, // see above
+	// {_id:4,items:[1003,1002],price:-3.00},
+	{_id:5,items:[1004,1004],price:-1.99},
 ]
 // todo this structure may need changed becasue the ability to overlap...
+
+// new scheme
+let newitems = [
+	{_id:1,items:[1001],name:'eggs',price:1.99,tax:.06},
+	{_id:2,items:[1002],name:'toothbrush',price:1.99,tax:.06},
+	{_id:3,items:[1002,1002,1002],name:'toothbrushes',price:-1.99,tax:.06},
+	{_id:4,items:[1003],name:'bread',price:3.99,tax:.06},
+	{_id:5,items:[1004],name:'milk',price:6.99,tax:.06},
+	{_id:6,items:[1005],name:'soda',price:5.99,tax:.06},
+	{_id:7,items:[1006],name:'wine',price:9.99,tax:.0925},
+	{_id:8,items:[1007],name:'apples',price:1.00,tax:.06},
+];
 
 // setup callable operations, use absolute value for the apply numeric
 let operations = {
@@ -63,50 +77,52 @@ function processCart(){
 		//console.log('prior subtotal: '+total);
 
 		// filter modifiers to just those relevant to this cart item
-		let relevantModifiers = modifiers.filter(function(entry){ return entry.item === cart[i]; });
+		let relevantModifiers = modifiers.filter(function(entry){ return entry.items.includes(cart[i]); });
+
+		// let relevantModifiers = modifiers.filter(function(entry) {
+		// 	return entry.condition.every(function (value) {
+		// 		return (entry.items.indexOf(value) >= 0);
+		// 	});
+		// });
 		// TODO order this by cost savings so that in the event only one is successful its the best one
 		//console.log(relevantModifiers);
 
 		// for each relevant modifier try to apply modifiers allowing it to fail when unmet
 		for(let found of relevantModifiers){
 			try{
-				let remaining = {};
-
 				// use set to verify met conditions are of unique indexes in cart
 				let valid = new Set();
-				for (let j = found.condition.length - 1; j >= 0; j--) {
+				for (let j = found.items.length - 1; j >= 0; j--) {
 					// create scoped clone of cart array to remove used indexes from
 					let arr = cart.slice();
-					
 					// check if same item was purchased and effected by modification rules
 					if(available[cart[i]]){
-						//console.log(available[cart[i]]);
+						console.log(cart[i],available[cart[i]]);
 						// replace arr with clone of available remaining matches to ensure no erroneous duplication of shared partials in combos
 						arr = available[cart[i]].slice();
 					}
 					
 					// get index of condition item _id
-					let test = arr.indexOf(found.condition[j]);
+					let test = arr.indexOf(found.items[j]);
 					// if not the current cart item, and item exists in cart increment count of conditions met
-					if(test !== i && test != -1){
+					if(test !== -1){
 						// mutate scoped cart arr but maintains index
 						delete arr[test];
 						// add to valid indexes
 						valid.add(test);
 						// add to temp store remaining unused items
-						remaining = arr.slice();
+						available[cart[i]] = arr.slice();
+
 					}
 				}
 				// verify all nessesary conditions are met
-				if(valid.size === found.condition.length){
+				if(valid.size === found.items.length){
 					// log modifier with all conditions validated
 					console.log(found);
-					// add to available the current scoped remaining items
-					available[cart[i]] = remaining;
 					// remove this item as it has received modification
 					delete available[cart[i]][i];
 					// apply modifier to total
-					total+= operations[found.operation](total, found.apply);
+					total+= found.price;
 				}
 			}catch(err){
 				console.log('err');
