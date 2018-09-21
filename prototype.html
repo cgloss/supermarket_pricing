@@ -12,38 +12,43 @@ test dupe conditions
 // making assumption to apply the most cost effective promotion for the customer
 // making assumption that overlaping promotions are intentional or acceptable
 
+// test cart
+let cart = [1003,1001,1005,1002,1003,6732,4900,1003,1007];
 
-let cart = [1001,1004,1003,1002,1004,1006,1004,1001,1004,1004,6732,4900,1111];
+// test total for whole
+let testTotal = 35.36;
+
+// testing taxable item
+let testTaxTotal = 16.92;
 
 // new scheme
 let newitems = [
-	{_id:0,items:[6732,4900],name:'chips and salsa combo',price:-.99,tax:0},
-	{_id:1,items:[1001],name:'eggs',price:1.99,tax:.06},
-	{_id:2,items:[1004],name:'toothbrush',price:1.99,tax:.06},
-	{_id:3,items:[1004,1004],name:'toothbrushes',price:-1.99,tax:.06},
-	{_id:4,items:[1003],name:'bread',price:3.99,tax:.06},
-	{_id:5,items:[1002],name:'milk',price:6.99,tax:.06},
-	{_id:12,items:[6732,4900],name:'chips and salsa combo',price:-1.99,tax:0},
-	{_id:6,items:[1005],name:'soda',price:5.99,tax:.06},
-	{_id:7,items:[1006],name:'wine',price:9.99,tax:.0925},
-	{_id:8,items:[1007],name:'apples',price:1.00,tax:.06},
-	{_id:9,items:[6732],name:'chips',price:2.49,tax:0},
-	{_id:10,items:[4900],name:'salsa',price:3.49,tax:0},
-	{_id:11,items:[6732,4900],name:'chips and salsa combo',price:-2.99,tax:0},
+	{_id:1,category:'simple',type:'item',items:[1001],name:'eggs',price:2.99,tax:0},
+	{_id:2,category:'simple',type:'item',items:[1002],name:'milk',price:3.99,tax:0},
+	{_id:3,category:'simple',type:'item',items:[1003],name:'toothbrush',price:1.99,tax:0},
+	{_id:4,category:'buy-X-get-Y',type:'promo',items:[1003,1003,1003],name:'toothbrushes',price:-1.99,tax:0},
+	{_id:5,category:'simple',type:'item',items:[1005],name:'bread',price:3.49,tax:0},
+	{_id:6,category:'simple',type:'item',items:[1006],name:'soda',price:5.99,tax:0},
+	{_id:7,category:'additional-tax',type:'item',items:[1007],name:'wine',price:15.49,tax:.0925},
+	{_id:8,category:'simple',type:'item',items:[1008],name:'apples',price:1.00,tax:0},
+	{_id:9,category:'simple',type:'item',items:[6732],name:'chips',price:2.49,tax:0},
+	{_id:10,category:'simple',type:'item',items:[4900],name:'salsa',price:3.49,tax:0},
+	{_id:11,category:'bundled',type:'promo',items:[6732,4900],name:'chips and salsa combo',price:-.99,tax:0},
+	{_id:12,category:'sale',type:'promo',items:[1002],name:'milk sale',price:-1.00,tax:0},
 
 ];
 
 // float
 var total = 0;
 function processCart(){
-	// store available remaining matches to ensure no erroneous duplication of shared partials in combos
-	let available;
+	// define scoped clone of cart to ensure no erroneous duplication of shared partials in promotions
+	let available = cart.slice();
 	// for each item in cart
 	for (let i = cart.length - 1; i >= 0; i--) {
 
 		try{
 			// apply tax and add items price to subtotal
-			let item = newitems.find(entry => entry.items.length === 1 && entry.items[0] === cart[i]);
+			let item = newitems.find(entry => entry.type === 'item' && entry.items.length === 1 && entry.items[0] === cart[i]);
 			total += (item.price * (1+item.tax));
 		}catch(err){
 			console.log('item code not found');
@@ -51,7 +56,7 @@ function processCart(){
 		}
 
 		// filter modifiers to just those relevant to this cart item
-		let relevantModifiers = newitems.filter(function(entry){ return entry.items.length > 1 && entry.items.includes(cart[i]); });
+		let relevantModifiers = newitems.filter(entry => entry.type === 'promo' && entry.items.length >= 1 && entry.items.includes(cart[i]));
 		// sort promotions by cost savings in the event of duplicate/overlapping promos
 		relevantModifiers.sort((a, b) => a.price - b.price);
 
@@ -61,23 +66,19 @@ function processCart(){
 				// use set to verify met conditions are of unique indexes in cart
 				let valid = new Set();
 				for (let j = found.items.length - 1; j >= 0; j--) {
-					// create scoped clone of cart array to remove used indexes from
-					let arr = cart.slice();
-					// apply current items availability if prior promotions have been applied to cart
-					if(available){
-						// replace arr with clone of available remaining matches to ensure no erroneous duplication of shared partials in combos
-						arr = available.slice();
-					}
+				
+					// scoped clone of current items promotion availability
+					let arr = available.slice();
 					
 					// get index of condition item _id
-					let test = arr.indexOf(found.items[j]);
+					let index = arr.indexOf(found.items[j]);
 					// if not the current cart item, and item exists in cart increment count of conditions met
-					if(test !== -1){
+					if(index !== cart[i] && index !== -1){
 						// mutate scoped cart arr but maintains index
-						delete arr[test];
+						delete arr[index];
 						// add to valid indexes
-						valid.add(test);
-						// add to temp store remaining unused items
+						valid.add(index);
+						// clone 
 						available = arr.slice();
 
 					}
