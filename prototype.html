@@ -7,56 +7,13 @@ test dupe conditions
 
 <script type="text/javascript">
 
-// making assumption that in the event of a combo purchase, the items are not sharable in cases of duplicate partials
-// that means this needs corrected
+// making assumption in the event of a combo purchase, the items are not sharable to other combos
+// making assumption that items purchased with promotion can not have more then one promotion applied
+// making assumption to apply the most cost effective promotion for the customer
+// making assumption that overlaping promotions are intentional or acceptable
 
-// also look at bundeled again, it may not work as written
 
-// if dupes make sure not to give erroneous uplicat combo
-
-// yo you are assuming the same item would not have more then one conditional arguments... like 1002:{}, 1002:{} thats a problem
-
-// HUGE mistake, not accountng for item modifiers where wait no... becasue for a combo to work you would always have to have both... check other requirments though
-
-// assuming we are not allowing doubling use of cart items in savings and instead want to apply the most cost effective modification to cost for the customer
-
-// assuming they may want the ability to create overlaping promotions, to allow this means alternating the item id with conditions
-
-// let items = [
-// 	{_id:1001,name:'eggs',price:1.99},
-// 	{_id:1002,name:'milk',price:2.99},
-// 	{_id:1003,name:'bread',price:3.99},
-// 	{_id:1004,name:'toothbrush',price:1.99},
-// 	{_id:1005,name:'soda',price:5.99},
-// 	{_id:1006,name:'beer',price:9.99},
-// 	{_id:1007,name:'apples',price:1.00},
-// 	{_id:1008,name:'pears',price:2.00},
-// 	{_id:1009,name:'blueberries',price:3.50},
-// 	{_id:1010,name:'strawberries',price:4.50},
-// 	{_id:1011,name:'yogurt',price:1.00},
-// ];
-
-// {item:number,condition:arr<string>,operation:string,apply:number}
-// let modifiers = [
-// 	// {_id:1,items:[1003],price:-1.00}, // these are allowing for 4 times use of 1002 when it should only allow 2
-// 	// {_id:2,items:[],operation:'*',apply:.0925},
-// 	// {_id:3,items:[1001],price:-2.00}, // see above
-// 	// {_id:4,items:[1003,1002],price:-3.00},
-// 	{_id:5,items:[1004,1004],price:-1.99},
-// ]
-// todo this structure may need changed becasue the ability to overlap...
-
-// setup callable operations, use absolute value for the apply numeric
-// let operations = {
-//     '-': function(a, b){ return -Math.abs(b); },
-//     '*': function(a, b){ return a * b; }
-// };
-
-// refactor to resolve this dupeing of modification
-let cart = [6732,4900];
-// let cart = [1001,1004,1003,1002,1004,1006,1004,1001,1004,1004,6732,4900,1111];
-// let cart = [1004,1004,1004,1004];
-// let cart = [1006];
+let cart = [1001,1004,1003,1002,1004,1006,1004,1001,1004,1004,6732,4900,1111];
 
 // new scheme
 let newitems = [
@@ -88,7 +45,6 @@ function processCart(){
 			// apply tax and add items price to subtotal
 			let item = newitems.find(entry => entry.items.length === 1 && entry.items[0] === cart[i]);
 			total += (item.price * (1+item.tax));
-			//console.log('prior subtotal: '+total);
 		}catch(err){
 			console.log('item code not found');
 			continue;
@@ -107,7 +63,7 @@ function processCart(){
 				for (let j = found.items.length - 1; j >= 0; j--) {
 					// create scoped clone of cart array to remove used indexes from
 					let arr = cart.slice();
-					// check if same item was purchased and effected by modification rules
+					// apply current items availability if prior promotions have been applied to cart
 					if(available){
 						// replace arr with clone of available remaining matches to ensure no erroneous duplication of shared partials in combos
 						arr = available.slice();
