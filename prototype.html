@@ -21,51 +21,60 @@ test dupe conditions
 
 // assuming they may want the ability to create overlaping promotions, to allow this means alternating the item id with conditions
 
-// let cart = [1001,1002,1003,1004,1002,1006,1001];
-let cart = [1004,1004,1004];
+// refactor to resolve this dupeing of modification
+let cart = [6732,4900];
 
-let items = [
-	{_id:1001,name:'eggs',price:1.99},
-	{_id:1002,name:'milk',price:2.99},
-	{_id:1003,name:'bread',price:3.99},
-	{_id:1004,name:'toothbrush',price:1.99},
-	{_id:1005,name:'soda',price:5.99},
-	{_id:1006,name:'beer',price:9.99},
-	{_id:1007,name:'apples',price:1.00},
-	{_id:1008,name:'pears',price:2.00},
-	{_id:1009,name:'blueberries',price:3.50},
-	{_id:1010,name:'strawberries',price:4.50},
-	{_id:1011,name:'yogurt',price:1.00},
-];
+// let cart = [1001,1004,1003,1002,1004,1006,1004,1001,1004,1004,6732,4900];
+// let cart = [1004,1004,1004,1004];
+// let cart = [1006];
+
+
+// let items = [
+// 	{_id:1001,name:'eggs',price:1.99},
+// 	{_id:1002,name:'milk',price:2.99},
+// 	{_id:1003,name:'bread',price:3.99},
+// 	{_id:1004,name:'toothbrush',price:1.99},
+// 	{_id:1005,name:'soda',price:5.99},
+// 	{_id:1006,name:'beer',price:9.99},
+// 	{_id:1007,name:'apples',price:1.00},
+// 	{_id:1008,name:'pears',price:2.00},
+// 	{_id:1009,name:'blueberries',price:3.50},
+// 	{_id:1010,name:'strawberries',price:4.50},
+// 	{_id:1011,name:'yogurt',price:1.00},
+// ];
 
 // {item:number,condition:arr<string>,operation:string,apply:number}
-let modifiers = [
-	// {_id:1,items:[1003],price:-1.00}, // these are allowing for 4 times use of 1002 when it should only allow 2
-	// {_id:2,items:[],operation:'*',apply:.0925},
-	// {_id:3,items:[1001],price:-2.00}, // see above
-	// {_id:4,items:[1003,1002],price:-3.00},
-	{_id:5,items:[1004,1004],price:-1.99},
-]
+// let modifiers = [
+// 	// {_id:1,items:[1003],price:-1.00}, // these are allowing for 4 times use of 1002 when it should only allow 2
+// 	// {_id:2,items:[],operation:'*',apply:.0925},
+// 	// {_id:3,items:[1001],price:-2.00}, // see above
+// 	// {_id:4,items:[1003,1002],price:-3.00},
+// 	{_id:5,items:[1004,1004],price:-1.99},
+// ]
 // todo this structure may need changed becasue the ability to overlap...
 
 // new scheme
 let newitems = [
 	{_id:1,items:[1001],name:'eggs',price:1.99,tax:.06},
-	{_id:2,items:[1002],name:'toothbrush',price:1.99,tax:.06},
-	{_id:3,items:[1002,1002,1002],name:'toothbrushes',price:-1.99,tax:.06},
+	{_id:2,items:[1004],name:'toothbrush',price:1.99,tax:.06},
+	{_id:3,items:[1004,1004,1004],name:'toothbrushes',price:-1.99,tax:.06},
 	{_id:4,items:[1003],name:'bread',price:3.99,tax:.06},
-	{_id:5,items:[1004],name:'milk',price:6.99,tax:.06},
+	{_id:5,items:[1002],name:'milk',price:6.99,tax:.06},
 	{_id:6,items:[1005],name:'soda',price:5.99,tax:.06},
 	{_id:7,items:[1006],name:'wine',price:9.99,tax:.0925},
 	{_id:8,items:[1007],name:'apples',price:1.00,tax:.06},
+	{_id:9,items:[6732],name:'chips',price:2.49,tax:0},
+	{_id:10,items:[4900],name:'salsa',price:3.49,tax:0},
+	{_id:11,items:[6732,4900],name:'chips and salsa combo',price:-.99,tax:0},
 ];
 
 // setup callable operations, use absolute value for the apply numeric
-let operations = {
-    '-': function(a, b){ return -Math.abs(b); },
-    '*': function(a, b){ return a * b; }
-};
+// let operations = {
+//     '-': function(a, b){ return -Math.abs(b); },
+//     '*': function(a, b){ return a * b; }
+// };
 
+// float
 var total = 0;
 function processCart(){
 	// store available remaining matches to ensure no erroneous duplication of shared partials in combos
@@ -73,11 +82,16 @@ function processCart(){
 	// for each item in cart
 	for (let i = cart.length - 1; i >= 0; i--) {
 		// add items price to subtotal
-		total += items.find(item => item._id === cart[i]).price;
+		//total += items.find(item => item._id === cart[i]).price;
+		
+		// apply tax and add subtotal to total
+		let item = newitems.find(entry => entry.items.length === 1 && entry.items[0] === cart[i]);
+		console.log(item.tax,(item.price * (1+item.tax)));
+		total += (item.price * (1+item.tax));
 		//console.log('prior subtotal: '+total);
 
 		// filter modifiers to just those relevant to this cart item
-		let relevantModifiers = modifiers.filter(function(entry){ return entry.items.includes(cart[i]); });
+		let relevantModifiers = newitems.filter(function(entry){ return entry.items.length > 1 && entry.items.includes(cart[i]); });
 
 		// let relevantModifiers = modifiers.filter(function(entry) {
 		// 	return entry.condition.every(function (value) {
@@ -120,7 +134,8 @@ function processCart(){
 					// log modifier with all conditions validated
 					console.log(found);
 					// remove this item as it has received modification
-					delete available[cart[i]][i];
+					//delete available[cart[i]][i]; // not after removal of remaining arr delete this
+
 					// apply modifier to total
 					total+= found.price;
 				}
