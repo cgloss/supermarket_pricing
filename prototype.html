@@ -1,6 +1,7 @@
 <html>
 <body>
 test dupes
+test overlapping promos
 test condition same as mod id
 test dupe conditions
 
@@ -20,14 +21,6 @@ test dupe conditions
 // assuming we are not allowing doubling use of cart items in savings and instead want to apply the most cost effective modification to cost for the customer
 
 // assuming they may want the ability to create overlaping promotions, to allow this means alternating the item id with conditions
-
-// refactor to resolve this dupeing of modification
-let cart = [6732,4900];
-
-// let cart = [1001,1004,1003,1002,1004,1006,1004,1001,1004,1004,6732,4900];
-// let cart = [1004,1004,1004,1004];
-// let cart = [1006];
-
 
 // let items = [
 // 	{_id:1001,name:'eggs',price:1.99},
@@ -53,53 +46,58 @@ let cart = [6732,4900];
 // ]
 // todo this structure may need changed becasue the ability to overlap...
 
-// new scheme
-let newitems = [
-	{_id:1,items:[1001],name:'eggs',price:1.99,tax:.06},
-	{_id:2,items:[1004],name:'toothbrush',price:1.99,tax:.06},
-	{_id:3,items:[1004,1004,1004],name:'toothbrushes',price:-1.99,tax:.06},
-	{_id:4,items:[1003],name:'bread',price:3.99,tax:.06},
-	{_id:5,items:[1002],name:'milk',price:6.99,tax:.06},
-	{_id:6,items:[1005],name:'soda',price:5.99,tax:.06},
-	{_id:7,items:[1006],name:'wine',price:9.99,tax:.0925},
-	{_id:8,items:[1007],name:'apples',price:1.00,tax:.06},
-	{_id:9,items:[6732],name:'chips',price:2.49,tax:0},
-	{_id:10,items:[4900],name:'salsa',price:3.49,tax:0},
-	{_id:11,items:[6732,4900],name:'chips and salsa combo',price:-.99,tax:0},
-];
-
 // setup callable operations, use absolute value for the apply numeric
 // let operations = {
 //     '-': function(a, b){ return -Math.abs(b); },
 //     '*': function(a, b){ return a * b; }
 // };
 
+// refactor to resolve this dupeing of modification
+let cart = [6732,4900];
+// let cart = [1001,1004,1003,1002,1004,1006,1004,1001,1004,1004,6732,4900,1111];
+// let cart = [1004,1004,1004,1004];
+// let cart = [1006];
+
+// new scheme
+let newitems = [
+	{_id:0,items:[6732,4900],name:'chips and salsa combo',price:-.99,tax:0},
+	{_id:1,items:[1001],name:'eggs',price:1.99,tax:.06},
+	{_id:2,items:[1004],name:'toothbrush',price:1.99,tax:.06},
+	{_id:3,items:[1004,1004],name:'toothbrushes',price:-1.99,tax:.06},
+	{_id:4,items:[1003],name:'bread',price:3.99,tax:.06},
+	{_id:5,items:[1002],name:'milk',price:6.99,tax:.06},
+	{_id:12,items:[6732,4900],name:'chips and salsa combo',price:-1.99,tax:0},
+	{_id:6,items:[1005],name:'soda',price:5.99,tax:.06},
+	{_id:7,items:[1006],name:'wine',price:9.99,tax:.0925},
+	{_id:8,items:[1007],name:'apples',price:1.00,tax:.06},
+	{_id:9,items:[6732],name:'chips',price:2.49,tax:0},
+	{_id:10,items:[4900],name:'salsa',price:3.49,tax:0},
+	{_id:11,items:[6732,4900],name:'chips and salsa combo',price:-2.99,tax:0},
+
+];
+
 // float
 var total = 0;
 function processCart(){
 	// store available remaining matches to ensure no erroneous duplication of shared partials in combos
-	let available = {};
+	let available;
 	// for each item in cart
 	for (let i = cart.length - 1; i >= 0; i--) {
-		// add items price to subtotal
-		//total += items.find(item => item._id === cart[i]).price;
-		
-		// apply tax and add subtotal to total
-		let item = newitems.find(entry => entry.items.length === 1 && entry.items[0] === cart[i]);
-		console.log(item.tax,(item.price * (1+item.tax)));
-		total += (item.price * (1+item.tax));
-		//console.log('prior subtotal: '+total);
+
+		try{
+			// apply tax and add items price to subtotal
+			let item = newitems.find(entry => entry.items.length === 1 && entry.items[0] === cart[i]);
+			total += (item.price * (1+item.tax));
+			//console.log('prior subtotal: '+total);
+		}catch(err){
+			console.log('item code not found');
+			continue;
+		}
 
 		// filter modifiers to just those relevant to this cart item
 		let relevantModifiers = newitems.filter(function(entry){ return entry.items.length > 1 && entry.items.includes(cart[i]); });
-
-		// let relevantModifiers = modifiers.filter(function(entry) {
-		// 	return entry.condition.every(function (value) {
-		// 		return (entry.items.indexOf(value) >= 0);
-		// 	});
-		// });
-		// TODO order this by cost savings so that in the event only one is successful its the best one
-		//console.log(relevantModifiers);
+		// sort promotions by cost savings in the event of duplicate/overlapping promos
+		relevantModifiers.sort((a, b) => a.price - b.price);
 
 		// for each relevant modifier try to apply modifiers allowing it to fail when unmet
 		for(let found of relevantModifiers){
@@ -110,10 +108,9 @@ function processCart(){
 					// create scoped clone of cart array to remove used indexes from
 					let arr = cart.slice();
 					// check if same item was purchased and effected by modification rules
-					if(available[cart[i]]){
-						console.log(cart[i],available[cart[i]]);
+					if(available){
 						// replace arr with clone of available remaining matches to ensure no erroneous duplication of shared partials in combos
-						arr = available[cart[i]].slice();
+						arr = available.slice();
 					}
 					
 					// get index of condition item _id
@@ -125,7 +122,7 @@ function processCart(){
 						// add to valid indexes
 						valid.add(test);
 						// add to temp store remaining unused items
-						available[cart[i]] = arr.slice();
+						available = arr.slice();
 
 					}
 				}
