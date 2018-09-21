@@ -3,7 +3,7 @@
 // making assumption to apply the most cost effective promotion for the customer
 // making assumption that overlaping promotions are intentional or acceptable
 
-interface IPricingSchemeEntries {
+export interface IPricingScheme {
   _id: number;
   category: string;
   type: string;
@@ -13,12 +13,12 @@ interface IPricingSchemeEntries {
   tax?: number;
 }
 
-class Checkout {
+export class Checkout {
 
   public cart: Array<string> = [];
   public total: number = 0;
 
-  constructor(public pricingScheme: Array<IPricingSchemeEntries>) {
+  constructor(public pricingScheme: Array<IPricingScheme>) {
 
   }
 
@@ -79,36 +79,7 @@ class Checkout {
         }
       }
     }
+    // assumption return in cents per document
     return Math.round(this.total*100);
   }
 }
-
-let todaysScheme = [
-  {_id:1,category:'simple',type:'item',items:['1001'],name:'eggs',price:2.99,tax:0},
-  {_id:2,category:'simple',type:'item',items:['8873'],name:'milk',price:3.99,tax:0},
-  {_id:3,category:'simple',type:'item',items:['1983'],name:'toothbrush',price:1.99,tax:0},
-  {_id:4,category:'buy-x-get-y',type:'promo',items:['1983','1983','1983'],name:'toothbrushes',price:-1.99,tax:0},
-  {_id:5,category:'simple',type:'item',items:['1005'],name:'bread',price:3.49,tax:0},
-  {_id:6,category:'simple',type:'item',items:['1006'],name:'soda',price:5.99,tax:0},
-  {_id:7,category:'additional-tax',type:'item',items:['0923'],name:'wine',price:15.49,tax:.0925},
-  {_id:8,category:'simple',type:'item',items:['1008'],name:'apples',price:1.00,tax:0},
-  {_id:9,category:'simple',type:'item',items:['6732'],name:'chips',price:2.49,tax:0},
-  {_id:10,category:'simple',type:'item',items:['4900'],name:'salsa',price:3.49,tax:0},
-  {_id:11,category:'bundled',type:'promo',items:['6732','4900'],name:'chips and salsa combo',price:-.99,tax:0},
-  {_id:12,category:'sale',type:'promo',items:['1001'],name:'egg sale',price:-1.00,tax:0}
-];
-
-let c = new Checkout(todaysScheme);
-c.scan('1983'); // toothbrush
-c.scan('4900'); // salsa
-c.scan('8873'); // milk
-c.scan('6732'); // chips
-c.scan('0923'); // wine
-c.scan('1983'); // toothbrush
-c.scan('1983'); // toothbrush
-c.scan('1983'); // toothbrush
-let cents = c.getTotal();
-
-console.log(cents);
-console.log(3037 === cents);
-console.log("$"+(cents/100));
