@@ -15,48 +15,56 @@ interface IPricingScheme {
 
 class Checkout {
 
+  public applicablePromotions: Array<IPricingScheme> = [];
   public cacheTotal: number = 0;
   public cart: Array<IPricingScheme> = [];
-  public scanned: Array<string> = [];
-  public total: number = 0;
   private _promotions: Array<IPricingScheme> = [];
-  private _reduction: number = 0;
 
   constructor(public pricingScheme: Array<IPricingScheme>) {
 
   }
-
-  scan(sku: string): number {
-    this.cacheTotal = 0
-    let price = 0;
+  
+  // allow terminal to item/price check
+  itemCheck(sku: string): IPricingScheme {
     try {
-      // apply tax and add items price to subtotal
-      let item = this.pricingScheme.find(entry => entry.type === 'item' && entry.items.length === 1 && entry.items[0] === sku);
-      this.cart.push(item);
-      price = (item.price * (1 + item.tax));
-      this.total += price;
+      return this.pricingScheme.find(entry => entry.type === 'item' && entry.items.length === 1 && entry.items[0] === sku);
     } catch (err) {
       console.log('item not found');
-      return price;
+      return null;
     }
-    this.scanned.push(sku);
+  }
+
+  // returns price for terminal use to display as items are scanned
+  scan(sku: string): number {
+    this.cacheTotal = 0;
+    let item = this.itemCheck(sku);    
+    if(!item){
+      return null;
+    }
+    this.cart.push(item);
+    // apply tax and add items price to subtotal
     this.findPromotions(sku);
-    return price;
+    return (item.price * (1 + item.tax));
   }
 
-  findPromotions(sku: string): void {
+  // allow terminal to look up item related promotions
+  findPromotions(sku: string): Array<IPricingScheme> {
+    let promotions = this.pricingScheme.filter(entry => entry.type === 'promo' && entry.items.length >= 1 && entry.items.indexOf(sku) !== -1);
     // concat filtered promotions relevant to this sku
-    this._promotions = this._promotions.concat(this.pricingScheme.filter(entry => entry.type === 'promo' && entry.items.length >= 1 && entry.items.indexOf(sku) !== -1));
+    this._promotions = this._promotions.concat(promotions);
+    return promotions;
   }
 
-  reviewCart(): Array<IPricingScheme>{
+  // allow terminal to get current scanned items
+  reviewCart(): Array<IPricingScheme> {
     return this.cart;
   }
 
-  applyPromotions(): void {
-    this._reduction = 0;
-    // define scoped clone of cart to ensure no erroneous duplication of shared partials in promotions
-    let available = this.scanned.slice();
+// todo remove arr
+  private validatePromotions(): void {
+    this.applicablePromotions = <IPricingScheme[]>[] 
+    // define array of cart sku's to ensure no erroneous duplication of shared partials in promotions
+    let available = this.cart.map(entry => entry.items[0]);
     // sort promotions by cost savings in the event of duplicate/overlapping promos
     this._promotions.sort((a, b) => a.price - b.price);
     // for each found promotion try to apply, allowing it to fail when unmet
@@ -80,19 +88,37 @@ class Checkout {
       }
       // verify all nessesary conditions are met
       if (valid.size === found.items.length) {
-        // add price reduction
-        this._reduction += found.price;
+        this.applicablePromotions.push(found);
       }
     } 
   }
 
+  // allow terminal to void item from cart
+  void(sku: string): void {
+    this.cacheTotal = 0;
+    let index = this.cart.findIndex(entry => entry.items[0] === sku);
+    this.cart.splice(index, 1);
+  }
+
+  // allow terminal to get the promotions applied to the current cart
+  getAppliedPromotions(): Array<IPricingScheme>{
+    return this.applicablePromotions;
+  }
+
+  getSum(item:IPricingScheme): number {
+    return (item.price * (1 + item.tax));
+  }
+
   getTotal(): number {
     if (!this.cacheTotal) {
+      let total = this.cart.reduce((a, b) => a + this.getSum(b), 0);
       // apply promotions
-      this.applyPromotions();
+      this.validatePromotions();
+      let reduction = this.applicablePromotions.reduce((a, b) => a + b.price, 0);
       // assumption return in cents per document
-      this.cacheTotal = Math.round((this.total+this._reduction)*100);
+      this.cacheTotal = Math.round((total+reduction)*100);
     }
     return this.cacheTotal;
+
   }
 }
