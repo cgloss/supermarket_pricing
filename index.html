@@ -23,7 +23,6 @@
   c.scan('6732'); // chips
   c.scan('0923'); // wine
   c.scan('1983'); // toothbrush
-  // console.log(c.reviewCart());
   c.scan('1983'); // toothbrush
   c.scan('1983'); // toothbrush
 
@@ -35,6 +34,15 @@
   // console.log(cents);
   console.log(3037 === cents);
   console.log("$"+(cents/100));
+  
+setTimeout(function () {
+  //do something once
+  c.void('6732'); // toothbrush
+  console.log(c.reviewCart());
+  let test = c.getTotal();
+  console.log("$"+(test/100));
+}, 1000);
+
 </script>
 </body>
 </html>

@@ -60,7 +60,6 @@ class Checkout {
     return this.cart;
   }
 
-// todo remove arr
   private validatePromotions(): void {
     this.applicablePromotions = <IPricingScheme[]>[] 
     // define array of cart sku's to ensure no erroneous duplication of shared partials in promotions
@@ -71,19 +70,15 @@ class Checkout {
     for (let found of this._promotions) {
       // use set to verify met conditions are of unique indexes in cart
       let valid = new Set();
-      for (let j = found.items.length - 1; j >= 0; j--) {
-        // scoped clone of current items promotion availability
-        let arr = available.slice();
+      for (let i = found.items.length - 1; i >= 0; i--) {
         // get index of condition item _id
-        let index = arr.indexOf(found.items[j]);
+        let index = available.indexOf(found.items[i]);
         // item exists in cart, increment count of conditions met
         if (index !== -1) {
           // mutate scoped cart arr but maintains index
-          delete arr[index];
+          delete available[index];
           // add to valid indexes
           valid.add(index);
-          // update available with clone
-          available = arr.slice();
         }
       }
       // verify all nessesary conditions are met
@@ -97,7 +92,10 @@ class Checkout {
   void(sku: string): void {
     this.cacheTotal = 0;
     let index = this.cart.findIndex(entry => entry.items[0] === sku);
-    this.cart.splice(index, 1);
+    console.log(index);
+    if(index !== -1){
+      this.cart.splice(index, 1);
+    }
   }
 
   // allow terminal to get the promotions applied to the current cart
