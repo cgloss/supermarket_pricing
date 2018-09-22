@@ -23,14 +23,16 @@
   c.scan('6732'); // chips
   c.scan('0923'); // wine
   c.scan('1983'); // toothbrush
+  // console.log(c.reviewCart());
   c.scan('1983'); // toothbrush
   c.scan('1983'); // toothbrush
+
   let t0 = performance.now();
   let cents = c.getTotal();
   let t1 = performance.now();
   console.log("Call to processCart took " + (t1 - t0) + " milliseconds.");
 
-  console.log(cents);
+  // console.log(cents);
   console.log(3037 === cents);
   console.log("$"+(cents/100));
 </script>

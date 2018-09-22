@@ -3,7 +3,7 @@
 // making assumption to apply the most cost effective promotion for the customer
 // making assumption that overlaping promotions are intentional or acceptable
 
-export interface IPricingScheme {
+interface IPricingScheme {
   _id: number;
   category: string;
   type: string;
@@ -13,73 +13,86 @@ export interface IPricingScheme {
   tax?: number;
 }
 
-export class Checkout {
+class Checkout {
 
-  public cart: Array<string> = [];
+  public cacheTotal: number = 0;
+  public cart: Array<IPricingScheme> = [];
+  public scanned: Array<string> = [];
   public total: number = 0;
+  private _promotions: Array<IPricingScheme> = [];
+  private _reduction: number = 0;
 
   constructor(public pricingScheme: Array<IPricingScheme>) {
 
   }
 
-  scan(sku: string): void {
-    // if we were passing more then a single id use concat, push is more performant though mutates
-    this.cart.push(sku);
+  scan(sku: string): number {
+    this.cacheTotal = 0
+    let price = 0;
+    try {
+      // apply tax and add items price to subtotal
+      let item = this.pricingScheme.find(entry => entry.type === 'item' && entry.items.length === 1 && entry.items[0] === sku);
+      this.cart.push(item);
+      price = (item.price * (1 + item.tax));
+      this.total += price;
+    } catch (err) {
+      console.log('item not found');
+      return price;
+    }
+    this.scanned.push(sku);
+    this.findPromotions(sku);
+    return price;
+  }
+
+  findPromotions(sku: string): void {
+    // concat filtered promotions relevant to this sku
+    this._promotions = this._promotions.concat(this.pricingScheme.filter(entry => entry.type === 'promo' && entry.items.length >= 1 && entry.items.indexOf(sku) !== -1));
+  }
+
+  reviewCart(): Array<IPricingScheme>{
+    return this.cart;
+  }
+
+  applyPromotions(): void {
+    this._reduction = 0;
+    // define scoped clone of cart to ensure no erroneous duplication of shared partials in promotions
+    let available = this.scanned.slice();
+    // sort promotions by cost savings in the event of duplicate/overlapping promos
+    this._promotions.sort((a, b) => a.price - b.price);
+    // for each found promotion try to apply, allowing it to fail when unmet
+    for (let found of this._promotions) {
+      // use set to verify met conditions are of unique indexes in cart
+      let valid = new Set();
+      for (let j = found.items.length - 1; j >= 0; j--) {
+        // scoped clone of current items promotion availability
+        let arr = available.slice();
+        // get index of condition item _id
+        let index = arr.indexOf(found.items[j]);
+        // item exists in cart, increment count of conditions met
+        if (index !== -1) {
+          // mutate scoped cart arr but maintains index
+          delete arr[index];
+          // add to valid indexes
+          valid.add(index);
+          // update available with clone
+          available = arr.slice();
+        }
+      }
+      // verify all nessesary conditions are met
+      if (valid.size === found.items.length) {
+        // add price reduction
+        this._reduction += found.price;
+      }
+    } 
   }
 
   getTotal(): number {
-    // define scoped clone of cart to ensure no erroneous duplication of shared partials in promotions
-    let available = this.cart.slice();
-    // for each item in cart
-    for (let i = this.cart.length - 1; i >= 0; i--) {
-
-      try {
-        // apply tax and add items price to subtotal
-        let item = this.pricingScheme.find(entry => entry.type === 'item' && entry.items.length === 1 && entry.items[0] === this.cart[i]);
-        this.total += (item.price * (1 + item.tax));
-      } catch (err) {
-        console.log('item code not found');
-        continue;
-      }
-
-      // filter promotions to just those relevant to this cart item
-      let promotions = this.pricingScheme.filter(entry => entry.type === 'promo' && entry.items.length >= 1 && entry.items.includes(this.cart[i]));
-      // sort promotions by cost savings in the event of duplicate/overlapping promos
-      promotions.sort((a, b) => a.price - b.price);
-
-      // for each found promotion try to apply, allowing it to fail when unmet
-      for (let found of promotions) {
-        try {
-          // use set to verify met conditions are of unique indexes in cart
-          let valid = new Set();
-          for (let j = found.items.length - 1; j >= 0; j--) {
-            // scoped clone of current items promotion availability
-            let arr = available.slice();
-            // get index of condition item _id
-            let index = arr.indexOf(found.items[j]);
-            // item exists in cart, increment count of conditions met
-            if (index !== -1) {
-              // mutate scoped cart arr but maintains index
-              delete arr[index];
-              // add to valid indexes
-              valid.add(index);
-              // update available with clone
-              available = arr.slice();
-            }
-          }
-          // verify all nessesary conditions are met
-          if (valid.size === found.items.length) {
-            // log promotion with all conditions validated
-            console.log(found);
-            // apply promoti to total
-            this.total += found.price;
-          }
-        } catch (err) {
-          console.log('promotion not applicable');
-        }
-      }
+    if (!this.cacheTotal) {
+      // apply promotions
+      this.applyPromotions();
+      // assumption return in cents per document
+      this.cacheTotal = Math.round((this.total+this._reduction)*100);
     }
-    // assumption return in cents per document
-    return Math.round(this.total*100);
+    return this.cacheTotal;
   }
 }
