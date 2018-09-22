@@ -1,7 +1,14 @@
-// making assumption in the event of a combo purchase, the items are not sharable to other combos
-// making assumption that items purchased with promotion can not have more then one promotion applied
-// making assumption to apply the most cost effective promotion for the customer
-// making assumption that overlaping promotions are intentional or acceptable
+/**
+ * super market checkout code excercise
+ *
+ * assumptions:
+ * - in the event of a combo purchase, the items are not sharable to other combos
+ * - items purchased with promotion can not have more then one promotion applied
+ * - apply the most cost effective promotion for the customer
+ * - overlaping promotions are intentional/acceptable
+ *
+ */
+
 
 /**
  * Interface for pricing scheme.
@@ -9,7 +16,7 @@
  * @interface
  *
  */
-interface IPricingScheme {
+export interface IPricingScheme {
   /** numeric auto inc id for each entry */
   _id: number;
   /** string describes supermarket pricing scheme category */
@@ -31,7 +38,7 @@ interface IPricingScheme {
  * @constructor
  * @param {Object[]} pricingScheme - the pricing scheme containing items and promotions.
  */
-class Checkout {
+export class Checkout {
 
   public cart: Array<IPricingScheme> = [];
   private _applicablePromotions: Array<IPricingScheme> = [];
@@ -43,26 +50,26 @@ class Checkout {
   }
   
   /** allow terminal to item/price check */
-  itemCheck(sku: string | number): IPricingScheme | null{
+  itemCheck(sku: string | number): IPricingScheme | undefined{
     try {
       return this.pricingScheme.find(entry => entry.type === 'item' && entry.items.length === 1 && entry.items[0] === String(sku));
     } catch (err) {
       console.log('item not found');
-      return null;
+      return undefined;
     }
   }
 
   /** returns price for terminal use to display as items are scanned */
-  scan(sku: string | number): number {
+  scan(sku: string | number): number | undefined{
     this._cacheTotal = 0;
     let item = this.itemCheck(sku);    
     if(!item){
-      return null;
+      return undefined;
     }
     this.cart.push(item);
     // apply tax and add items price to subtotal
     this.findPromotions(sku);
-    return (item.price * (1 + item.tax));
+    return (item.price * (1 + (item.tax || 0)));
   }
 
   /** allow terminal to look up item related promotions */
@@ -84,7 +91,7 @@ class Checkout {
    * adds to applicable promotions for use in final total 
    */
   private validatePromotions(): void {
-    this._applicablePromotions = <IPricingScheme[]>[] 
+    this._applicablePromotions = <IPricingScheme[]>[]; 
     // define array of cart sku's to ensure no erroneous duplication of shared partials in promotions
     let available = this.cart.map(entry => entry.items[0]);
     // sort promotions by cost savings in the event of duplicate/overlapping promos
