@@ -199,7 +199,7 @@ export class Checkout {
   }
 
   /** return item price with applicable tax included */
-  getSum(entry:IPricingScheme): number {
+  private getSum(entry:IPricingScheme): number {
     return (entry.price * (1 + (entry.tax || 0)));
   }
 
