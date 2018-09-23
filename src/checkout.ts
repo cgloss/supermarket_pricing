@@ -9,10 +9,7 @@
  *
  */
 
-// TODO: add clear cart method
 // TODO: resolve compile issue, switch find to filter index of
-// TODO: switch undefined to return empty default item
-// TODO: switch undefined price return to 0
 // TODO: finish test cases
 
 
@@ -20,7 +17,6 @@
  * Interface for pricing scheme.
  *
  * @interface
- *
  */
 export interface IPricingScheme {
   /** numeric auto inc id for each entry */
@@ -56,26 +52,27 @@ export class Checkout {
   }
   
   /** allow terminal to item/price check */
-  itemCheck(sku: string | number): IPricingScheme | undefined{
+  itemCheck(sku: string | number): IPricingScheme {
     try {
-      return this.pricingScheme.find(entry => entry.type === 'item' && entry.items.length === 1 && entry.items[0] === String(sku));
+      return this.pricingScheme.find(entry => entry.type === 'item' && entry.items.length === 1 && entry.items[0] === String(sku)) || <IPricingScheme>{};
     } catch (err) {
       console.log('item not found');
-      return undefined;
+      return <IPricingScheme>{};
     }
   }
 
   /** returns price for terminal use to display as items are scanned */
-  scan(sku: string | number): number | undefined{
+  scan(sku: string | number): number {
     this._cacheTotal = 0;
-    let item = this.itemCheck(sku);    
-    if(!item){
-      return undefined;
+    let entry = this.itemCheck(sku) || <IPricingScheme>{};    
+    // check it item is empty and if it is return it immediatly with defualt 0 price
+    if(!entry.items){
+      return 0;
     }
-    this.cart.push(item);
+    this.cart.push(entry);
     // apply tax and add items price to subtotal
     this.findPromotions(sku);
-    return (item.price * (1 + (item.tax || 0)));
+    return this.getSum(entry);
   }
 
   /** allow terminal to look up item related promotions */
@@ -133,14 +130,22 @@ export class Checkout {
     }
   }
 
+  /** allow terminal to void entire cart */
+  voidCart(): void {
+    this.cart =
+    this._applicablePromotions =
+    this._promotions = <IPricingScheme[]>[];
+    this._cacheTotal = 0;
+  }
+
   /** allow terminal to get the promotions applied to the current cart */
   getAppliedPromotions(): Array<IPricingScheme>{
     return this._applicablePromotions;
   }
 
   /** return item price with applicable tax included */
-  getSum(item:IPricingScheme): number {
-    return (item.price * (1 + item.tax));
+  getSum(entry:IPricingScheme): number {
+    return (entry.price * (1 + (entry.tax || 0)));
   }
 
   /** Returns the cart total with promotional reductions applied */
