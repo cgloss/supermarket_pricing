@@ -12,6 +12,5 @@ export const todaysScheme: IPricingScheme[] = [
   {_id:9,category:'simple',type:'item',items:['6732'],name:'chips',price:2.49,tax:0},
   {_id:10,category:'simple',type:'item',items:['4900'],name:'salsa',price:3.49,tax:0},
   {_id:11,category:'bundled',type:'promo',items:['6732','4900'],name:'chips and salsa combo',price:-.99,tax:0},
-  {_id:12,category:'sale',type:'promo',items:['1001'],name:'egg sale',price:-1.00,tax:0},
   {_id:13,category:'bundled',type:'promo',items:['1001','1005','8873'],name:'eggs bread and milk inclement weath combo',price:-2.00,tax:0}
 ];

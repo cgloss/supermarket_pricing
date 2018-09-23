@@ -9,9 +9,6 @@
  *
  */
 
-// TODO: resolve compile issue, switch find to filter index of
-// TODO: finish test cases
-
 /**
  * Interface for pricing scheme.
  *
