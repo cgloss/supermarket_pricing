@@ -12,7 +12,6 @@
 // TODO: resolve compile issue, switch find to filter index of
 // TODO: finish test cases
 
-
 /**
  * Interface for pricing scheme.
  *
@@ -33,6 +32,40 @@ export interface IPricingScheme {
   price: number;
   /** optional numeric float can be applied to individual item as (1 * [tax]) - .0925 */
   tax?: number;
+}
+
+/**
+ * Interface for itemized cart with quantity
+ *
+ * @interface
+ */
+export interface IItemized {
+  /** index signature for item sku */
+  [key: string]: {
+    /** number quantity of item in cart */
+    count: number, 
+    /** pricing scheme item object entry */
+    item:IPricingScheme
+  },
+}
+
+/**
+ * Interface for point of sale cart review and push for upsell
+ *
+ * @interface
+ */
+export interface ICartReview {
+  /** string used to filter individual items and promotions from scheme */
+  scannedItems: IItemized;
+  /** promo entries currently applied to cart (void aware)*/
+  promotionsApplied: Array<IPricingScheme>;
+  /** 
+   * promo entries with partial matches to cart items to allow point of sale upsell attempt. 
+   * (void un-aware): by design promotions upsell will not respond to individual voids of items,  
+   * assumption that voids are either a duplicate or buyers remorse, 
+   * the later being a use case for this upsell
+   */
+  promotionsUpsell: Set<IPricingScheme>;
 }
 
 /**
@@ -83,9 +116,23 @@ export class Checkout {
     return promotions;
   }
 
-  /** allow terminal to get current scanned items */
-  reviewCart(): Array<IPricingScheme> {
-    return this.cart;
+  /** get itemized list with count */
+  getItemized(): IItemized {
+    let itemized: IItemized = {};
+    this.cart.filter(entry =>  
+      itemized[entry.items[0]] = {count:(itemized[entry.items[0]] ? itemized[entry.items[0]].count : 0) + 1, item:entry}
+    );
+    return itemized;
+  }  
+
+  /** allow terminal to get current scanned items with quantity and promotions applied as well as possible promotions for upsell */
+  reviewCart(): ICartReview {
+    let review: ICartReview = {
+      scannedItems: this.getItemized(),
+      promotionsApplied: this.getAppliedPromotions(),
+      promotionsUpsell: this.getUpsellPromotions(),
+    }
+    return review;
   }
 
   /**
@@ -141,6 +188,16 @@ export class Checkout {
   /** allow terminal to get the promotions applied to the current cart */
   getAppliedPromotions(): Array<IPricingScheme>{
     return this._applicablePromotions;
+  }
+
+  /** allow terminal to get possible upsell promotions sans those already applied */
+  getUpsellPromotions(): Set<IPricingScheme>{
+    let upsell = new Set<IPricingScheme>();
+    this._promotions.filter(entry => 
+      this._applicablePromotions.indexOf(entry) === -1 && 
+      upsell.add(entry)
+    );
+    return upsell;
   }
 
   /** return item price with applicable tax included */

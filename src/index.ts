@@ -13,3 +13,4 @@ const c = new Checkout(todaysScheme);
 
 let cents = c.getTotal();
 console.log(cents);
+// c.reviewCart().promotionsUpsell.forEach(entry => console.log(entry));
