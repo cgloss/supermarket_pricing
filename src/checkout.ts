@@ -9,6 +9,12 @@
  *
  */
 
+// TODO: add clear cart method
+// TODO: resolve compile issue, switch find to filter index of
+// TODO: switch undefined to return empty default item
+// TODO: switch undefined price return to 0
+// TODO: finish test cases
+
 
 /**
  * Interface for pricing scheme.
