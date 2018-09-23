@@ -127,6 +127,7 @@ export class Checkout {
 
   /** allow terminal to get current scanned items with quantity and promotions applied as well as possible promotions for upsell */
   reviewCart(): ICartReview {
+    this.validatePromotions();
     let review: ICartReview = {
       scannedItems: this.getItemized(),
       promotionsApplied: this.getAppliedPromotions(),
@@ -179,8 +180,8 @@ export class Checkout {
 
   /** allow terminal to void entire cart */
   voidCart(): void {
-    this.cart =
-    this._applicablePromotions =
+    this.cart = <IPricingScheme[]>[];
+    this._applicablePromotions = <IPricingScheme[]>[];
     this._promotions = <IPricingScheme[]>[];
     this._cacheTotal = 0;
   }
