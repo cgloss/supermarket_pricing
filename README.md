@@ -3,9 +3,9 @@
 
 Solution resides [/src/checkout.ts](/src/checkout.ts)
 
-Example Scheme [/src/checkout.ts](/src/scheme.ts)
+Example Scheme [/src/scheme.ts](/src/scheme.ts)
 
-On start 
+## On start
 ```
 const c = new Checkout(todaysScheme);
   c.scan('1983'); // toothbrush
@@ -20,7 +20,7 @@ const c = new Checkout(todaysScheme);
 let cents = c.getTotal();
 console.log(cents);
 ```
-is executed.
+[is executed.](/src/index.ts) 
 
 
 # Getting Started
