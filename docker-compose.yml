@@ -3,7 +3,7 @@ transpiler:
   volumes_from:
     - data
   # typescript should watch the src directory
-  command: tsc -w --outDir dist/ ./src/index.ts
+  command: tsc --outDir dist/ ./src/index.ts --lib "es6,dom" 
 
 server:
   build: .
