@@ -52,7 +52,7 @@ export interface IItemized {
  * @interface
  */
 export interface ICartReview {
-  /** string used to filter individual items and promotions from scheme */
+  /** indexed IItemized items scanned with quantity */
   scannedItems: IItemized;
   /** promo entries currently applied to cart (void aware)*/
   promotionsApplied: Array<IPricingScheme>;
